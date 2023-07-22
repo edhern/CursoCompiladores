@@ -1,14 +1,15 @@
 import os
+import re
 
 nombre_archivo = "archivo.txt"
-ruta_archivo = "C:/Users/Wuux/Desktop/Compiladores"  # Opcional: especifica la ruta del archivo
+ruta_archivo = "C:/Users/Wuux/Desktop/Compiladores" 
 ruta_completa = os.path.join(ruta_archivo, nombre_archivo)
 
 # Integrantes Wilson Peñate y Eddison Rafael
 
 if os.path.exists(ruta_completa):
     # Ejercicio 1
-    archivo = open(ruta_completa, "r")
+    archivo = open(ruta_completa, "r", encoding="utf-8")
     contenido = archivo.read()
     archivo.close()
     
@@ -30,7 +31,23 @@ if os.path.exists(ruta_completa):
             print("decimal")
     except ValueError:
         print("Error")
-        
+
+    # Ejercicio 3
+    
+    palabras = re.findall(r'\b\w+\b', contenido)
+    numeros = []
+    for palabra in palabras:
+        try:
+            numero = int(palabra)
+            numeros.append(numero)
+        except ValueError:
+            pass
+
+    signos = re.findall(r'[^\w\s]', contenido)
+
+    print("Palabras:", palabras)
+    print("Números:", numeros)
+    print("Signos:", signos)    
 else:
     archivo = open(ruta_completa, "w")
     archivo.write("Curso de compiladores.\n")
