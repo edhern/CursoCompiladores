@@ -14,7 +14,7 @@ if os.path.exists(ruta_completa):
     palabras = re.findall(r'\b[a-zA-Z]+\b', contenido)
 
     # Expresión regular para obtener palabras que contengan letras y números, pero no enteros ni decimales
-    palabras_con_numeros = re.findall(r'\b[a-zA-Z]*\d+[a-zA-Z]*\b', contenido)
+    palabras_con_numeros = re.findall(r'\b[a-zA-Z]\d+[a-zA-Z]\b', contenido)
     palabras_con_numeros = [palabra for palabra in palabras_con_numeros if not re.match(r'^[+-]?\d+(\.\d+)?$', palabra)]
     numeros_enteros = re.findall(r'\b[+-]?\d+\b', contenido)
     numeros_decimales = re.findall(r'\b[+-]?\d+\.\d+\b', contenido)
