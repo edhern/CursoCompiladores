@@ -154,20 +154,72 @@ def obtener_diagnosticos_registrados():
     """Obtener todos los diagnósticos registrados en la base de datos."""
     conn = conectar_bd()
     cursor = conn.cursor()
-    cursor.execute("SELECT nombre_paciente, resultado_diagnostico, fecha FROM DiagnosticoPaciente ORDER BY fecha DESC")
+    cursor.execute("""
+        SELECT 
+            ISNULL(nombre_paciente, 'N/A') AS Paciente,
+            ISNULL(resultado_diagnostico, 'N/A') AS Diagnostico,
+            ISNULL(CONVERT(VARCHAR, fecha, 120), 'N/A') AS Fecha
+        FROM DiagnosticoPaciente
+        ORDER BY fecha DESC
+    """)
     diagnosticos = cursor.fetchall()
     conn.close()
     return diagnosticos
 
-# Función para actualizar el listado de diagnósticos en la interfaz gráfica
+# Función para mostrar los resultados en gráficas
+def mostrar_resultados():
+    """Generar gráficas basadas en los diagnósticos registrados en la base de datos."""
+    # Obtener diagnósticos de la base de datos
+    diagnosticos = obtener_diagnosticos_registrados()
+
+    if not diagnosticos:
+        messagebox.showwarning("Advertencia", "No hay diagnósticos registrados para mostrar resultados.")
+        return
+
+    # Validar que todas las filas tengan exactamente tres elementos
+    datos_validos = [list(diag) if len(diag) == 3 else ["N/A", "N/A", "N/A"] for diag in diagnosticos]
+
+    # Crear un DataFrame para analizar los datos
+    df = pd.DataFrame(datos_validos, columns=["Paciente", "Diagnostico", "Fecha"])
+
+    # Analizar la frecuencia de diagnósticos
+    diagnostico_counts = df['Diagnostico'].value_counts().reset_index()
+    diagnostico_counts.columns = ['Diagnostico', 'Cantidad']
+
+    # Verificar si hay datos suficientes para agrupar
+    if len(diagnostico_counts) < 2:
+        n_clusters = max(1, len(diagnostico_counts))  # Ajustar clusters al número de diagnósticos únicos
+    else:
+        n_clusters = 2
+
+    # Aplicar agrupamiento con KMeans
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    kmeans.fit(diagnostico_counts[['Cantidad']])
+    diagnostico_counts['Grupo'] = kmeans.labels_
+
+    # Crear gráfica de barras
+    plt.figure(figsize=(10, 6))
+    plt.bar(diagnostico_counts['Diagnostico'], diagnostico_counts['Cantidad'], color='skyblue')
+    plt.xlabel('Diagnóstico')
+    plt.ylabel('Cantidad')
+    plt.title('Frecuencia de Diagnósticos')
+    plt.xticks(rotation=45)
+    plt.show()
+
+# Función para actualizar el listado de diagnósticos en el Treeview
 def actualizar_listado_diagnosticos():
     """Actualizar el Treeview con los diagnósticos obtenidos de la base de datos."""
     diagnosticos = obtener_diagnosticos_registrados()
+    
+    # Validar que todas las filas tengan tres elementos
+    datos_validos = [list(diag) if len(diag) == 3 else ["N/A", "N/A", "N/A"] for diag in diagnosticos]
+
     listado_diagnosticos.delete(*listado_diagnosticos.get_children())  # Elimina las filas actuales
-    for diag in diagnosticos:
-        # Asegurar que los valores se muestren como cadenas sin espacios ni caracteres adicionales
+
+    for diag in datos_validos:
         nombre_paciente, resultado, fecha = diag
         listado_diagnosticos.insert("", tk.END, values=(nombre_paciente.strip(), resultado.strip(), fecha))
+
 
 # Función para diagnosticar una enfermedad basándose en los síntomas seleccionados
 def diagnosticar():
@@ -278,6 +330,13 @@ tk.Button(frame_diagnostico, text="¿Qué enfermedad tengo?", command=diagnostic
 frame_listado = tk.Frame(root)
 frame_listado.pack(pady=20)
 tk.Label(frame_listado, text="Listado de Diagnósticos Realizados:").pack()
+
+
+# Botón para mostrar resultados
+frame_resultados = tk.Frame(root)
+frame_resultados.pack(pady=20)
+tk.Button(frame_resultados, text="Obtener Resultados", command=mostrar_resultados).pack()
+
 
 # Crear un Treeview para mostrar los diagnósticos realizados
 listado_diagnosticos = ttk.Treeview(frame_listado, columns=("Paciente", "Diagnóstico", "Fecha"), show='headings')
